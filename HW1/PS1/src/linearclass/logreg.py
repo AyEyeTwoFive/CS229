@@ -1,5 +1,6 @@
 import numpy as np
 import util
+import matplotlib.pyplot as plt
 
 
 def main(train_path, valid_path, save_path):
@@ -15,46 +16,16 @@ def main(train_path, valid_path, save_path):
     # *** START CODE HERE ***
 
     # Train a logistic regression classifier
-    def sigmoid(x):
-        return 1 / (1 + np.exp(-x))
-
-    def grad_l(theta, x, y):
-        z = y * x.dot(theta)
-        g = -np.mean((1 - sigmoid(z)) * y * x.T, axis=1)
-        return g
-
-    def hess_l(theta, x, y):
-        hess = np.zeros((x.shape[1], x.shape[1]))
-        z = y * x.dot(theta)
-        for i in range(hess.shape[0]):
-            for j in range(hess.shape[1]):
-                if i <= j:
-                    hess[i][j] = np.mean(sigmoid(z) * (1 - sigmoid(z)) * x[:, i] * x[:, j])
-                    if i != j:
-                        hess[j][i] = hess[i][j]
-        return hess
-
-    def newton(theta0, x, y, G, H, eps):
-        theta = theta0
-        delta = 1
-        while delta > eps:
-            theta_prev = theta.copy()
-            theta -= np.linalg.inv(H(theta, x, y)).dot(G(theta, x, y))
-            delta = np.linalg.norm(theta - theta_prev, ord=1)
-        return theta
-
-    # Initialize theta0
-    theta0 = np.zeros(x_train.shape[1])
-
-    # Run Newton's method
-    theta_final = newton(theta0, x_train, y_train, grad_l, hess_l, 1e-6)
-    print(theta_final)
+    model = LogisticRegression(eps=1e-5)
+    model.fit(x_train, y_train)
 
     # Plot decision boundary on top of validation set set
-    x_values = np.linspace(x_train.min(),x_train.max(),2)
-    plt.scatter()
+    x_val, y_val = util.load_dataset(valid_path, add_intercept=True)
+    y_pred = model.predict(x_val)
+    util.plot(x_val, y_val, model.theta, '{}.png'.format('1b'))
 
     # Use np.savetxt to save predictions on eval set to save_path
+    np.savetxt(save_path, y_pred)
 
     # *** END CODE HERE ***
 
@@ -91,6 +62,27 @@ class LogisticRegression:
             y: Training example labels. Shape (n_examples,).
         """
         # *** START CODE HERE ***
+        g = lambda x: 1 / (1 + np.exp(-x))
+        m, n = x.shape
+
+        # initialize theta
+        if self.theta is None:
+            self.theta = np.zeros(n)
+
+        # optimize theta
+        # for i in range(self.max_iter):
+        while True:
+            theta = self.theta
+            J = - (1 / m) * (y - g(x.dot(theta))).dot(x)
+
+            x_theta = x.dot(theta)
+            H = (1 / m) * g(x_theta).dot(g(1 - x_theta)) * (x.T).dot(x)
+            H_inv = np.linalg.inv(H)
+
+            self.theta = theta - H_inv.dot(J)
+
+            if np.linalg.norm(self.theta - theta, ord=1) < self.eps:
+                break
 
         # *** END CODE HERE ***
 
@@ -104,7 +96,9 @@ class LogisticRegression:
             Outputs of shape (n_examples,).
         """
         # *** START CODE HERE ***
-
+        g = lambda x: 1 / (1 + np.exp(-x))
+        preds = g(x.dot(self.theta))
+        return preds
         # *** END CODE HERE ***
 
 if __name__ == '__main__':
