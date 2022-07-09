@@ -16,6 +16,13 @@ def main(lr, train_path, eval_path, save_path):
 
     # *** START CODE HERE ***
     # Fit a Poisson Regression model
+    poisson = PoissonRegression(max_iter=1000000, step_size=1e-7, eps=1e-5)
+    poisson.fit(x_train, y_train)
+
+    # Run on the validation set, and use np.savetxt to save outputs to pred_path
+    x_val, y_val = util.load_dataset(eval_path, add_intercept=False)
+    y_pred = poisson.predict(x_val)
+    np.savetxt(save_path, y_pred)
 
     # *** END CODE HERE ***
 
@@ -53,6 +60,17 @@ class PoissonRegression:
             y: Training example labels. Shape (n_examples,).
         """
         # *** START CODE HERE ***
+        m, n = x.shape
+        if self.theta is None:
+            self.theta = np.zeros(n)
+
+        g = lambda x: np.exp(x)
+        for i in range(self.max_iter):
+            theta = self.theta
+            gradient = (y - g(x.dot(theta))).dot(x)/m
+            self.theta = theta + self.step_size * gradient
+            if np.linalg.norm(self.theta - theta, ord=1) < self.eps:
+                break
 
         # *** END CODE HERE ***
 
@@ -66,7 +84,8 @@ class PoissonRegression:
             Floating-point prediction for each input, shape (n_examples,).
         """
         # *** START CODE HERE ***
-
+        g = lambda x: np.exp(x)
+        return g(x.dot(self.theta))
         # *** END CODE HERE ***
 
 if __name__ == '__main__':
