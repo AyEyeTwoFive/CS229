@@ -22,7 +22,7 @@ def main(train_path, valid_path, save_path):
     # Plot decision boundary on top of validation set set
     x_val, y_val = util.load_dataset(valid_path, add_intercept=True)
     y_pred = model.predict(x_val)
-    util.plot(x_val, y_val, model.theta, '{}.png'.format('1b'))
+    util.plot(x_val, y_val, model.theta, '{}.png'.format(save_path))
 
     # Use np.savetxt to save predictions on eval set to save_path
     np.savetxt(save_path, y_pred)
@@ -69,17 +69,15 @@ class LogisticRegression:
         if self.theta is None:
             self.theta = np.zeros(n)
 
-        # optimize theta
-        # for i in range(self.max_iter):
-        while True:
+        for i in range(self.max_iter):
             theta = self.theta
-            J = - (1 / m) * (y - g(x.dot(theta))).dot(x)
+            J = - (y - g(x.dot(theta))).dot(x) * (1 / m)
 
-            x_theta = x.dot(theta)
-            H = (1 / m) * g(x_theta).dot(g(1 - x_theta)) * (x.T).dot(x)
-            H_inv = np.linalg.inv(H)
+            x_dot_theta = x.dot(theta)
+            H = g(x_dot_theta).dot(g(1 - x_dot_theta)) * (1 / m) * (x.T).dot(x)
+            Hinv = np.linalg.inv(H)
 
-            self.theta = theta - H_inv.dot(J)
+            self.theta = theta - Hinv.dot(J)
 
             if np.linalg.norm(self.theta - theta, ord=1) < self.eps:
                 break

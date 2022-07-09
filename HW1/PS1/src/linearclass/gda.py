@@ -1,5 +1,6 @@
 import numpy as np
 import util
+from numpy.linalg import inv
 
 
 def main(train_path, valid_path, save_path):
@@ -16,10 +17,16 @@ def main(train_path, valid_path, save_path):
     # *** START CODE HERE ***
 
     # Train a GDA classifier
+    gda = GDA()
+    gda.fit(x_train, y_train)
 
     # Plot decision boundary on validation set
-
+    x_val, y_val = util.load_dataset(valid_path,add_intercept=False)
+    y_pred = gda.predict(x_val)
+    util.plot(x_val,y_val, gda.theta, '{}.png'.format((save_path)
+                                                      ))
     # Use np.savetxt to save outputs from validation set to save_path
+    np.savetxt(save_path,y_pred)
 
     # *** END CODE HERE ***
 
@@ -57,7 +64,19 @@ class GDA:
             y: Training example labels. Shape (n_examples,).
         """
         # *** START CODE HERE ***
-
+        m,n = x.shape
+        phi = (1/m) * (y==1).sum()
+        mu0 = (1/(y==0).sum()) * x[y == 0].sum(axis=0)
+        mu1 = (1/(y==1).sum()) * x[y == 1].sum(axis=0)
+        D = x.copy()
+        D[y==0] -= mu0
+        D[y==1] -= mu1
+        sig = D.T.dot(D) / m
+        sig_inv = inv(sig)
+        theta = sig_inv.dot(mu1-mu0)
+        theta0 = .5 * (mu0.T.dot(sig_inv).dot(mu0) - mu1.T.dot(sig_inv).dot(mu1)) - np.log((1 - phi) / phi)
+        theta = np.hstack([np.array([theta0]), theta])
+        self.theta = theta
         # *** END CODE HERE ***
 
     def predict(self, x):
@@ -70,7 +89,11 @@ class GDA:
             Outputs of shape (n_examples,).
         """
         # *** START CODE HERE ***
-
+        sigmoid = lambda z: 1 / (1 + np.exp(-z))
+        x = util.add_intercept(x)
+        probs = sigmoid(x.dot(self.theta))
+        preds = (probs >= 0.5).astype(int)
+        return preds
         # *** END CODE HERE
 
 if __name__ == '__main__':
